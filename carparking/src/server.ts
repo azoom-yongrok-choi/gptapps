@@ -28,7 +28,10 @@ import {
 import { z } from "zod";
 import { parkingSearchLoad } from "./load.js";
 import type { Context } from "./type.js";
+import dotenv from "dotenv";
+dotenv.config();
 
+const NGROK_URL = process.env.NGROK_URL || "http://localhost:8000";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const assetsDir = join(__dirname, "../../assets");
@@ -44,9 +47,9 @@ type CarparkingWidget = {
 };
 
 const carparkingMeta = {
-  "openai/outputTemplate": "ui://widget/parking-carousel.html",
-  "openai/toolInvocation/invoking": "Carousel some parking spots",
-  "openai/toolInvocation/invoked": "Served a fresh parking carousel",
+  "openai/outputTemplate": "ui://widget/carparking-carousel.html",
+  "openai/toolInvocation/invoking": "Carousel some car parking spots",
+  "openai/toolInvocation/invoked": "Served a fresh car parking carousel",
   "openai/widgetAccessible": true,
   "openai/resultCanProduceWidget": true,
 } as const;
@@ -54,7 +57,7 @@ const carparkingMeta = {
 const carparkingWidget: CarparkingWidget = {
   id: "carparking-carousel",
   title: "Show CarParking Carousel",
-  templateUri: "ui://widget/parking-carousel.html",
+  templateUri: "ui://widget/carparking-carousel.html",
   invoking: "Carousel some car parking spots",
   invoked: "Served a fresh car parking carousel",
   html: `
@@ -76,8 +79,8 @@ const carparkingWidget: CarparkingWidget = {
         }
       });
   };
-  loadWithHeaders('https://ferret-relevant-jointly.ngrok-free.app/assets/carparking-carousel-2d2b.css', 'css');
-  loadWithHeaders('https://ferret-relevant-jointly.ngrok-free.app/assets/carparking-carousel-2d2b.js', 'js');
+  loadWithHeaders('${NGROK_URL}/assets/carparking-carousel-2d2b.css', 'css');
+  loadWithHeaders('${NGROK_URL}/assets/carparking-carousel-2d2b.js', 'js');
 </script>
     `.trim(),
   responseText: "Rendered a CarParking carousel!",
@@ -235,7 +238,7 @@ function createCarparkingServer(): Server {
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
       switch (request.params.name) {
-        case "carparking-carousel": {
+        case "carparking-list": {
           const args = toolInputParser.parse(request.params.arguments ?? {});
 
           const context: Context = {
@@ -254,9 +257,6 @@ function createCarparkingServer(): Server {
             ],
             structuredContent: {
               dataSetId: result.dataSetId,
-              totalCount: result.totalCount,
-              subleaseCount: result.subleaseCount,
-              brokerageCount: result.brokerageCount,
               parkings: result.parkings,
               searchParams: args,
             },
@@ -429,35 +429,10 @@ httpServer.on("clientError", (err: Error, socket) => {
   socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
 });
 
-async function runStartupTest() {
-  console.log("\n🚗 [Startup Test] BigQuery connection test...\n");
-
-  const testParams = {
-    geoCircle: {
-      lat: 35.6812,
-      lng: 139.7671,
-      radiusKm: 1,
-    },
-  };
-
-  try {
-    console.log("📍 Search conditions:", JSON.stringify(testParams, null, 2));
-    await parkingSearchLoad(testParams, { session: {} });
-    console.log("✅ [Startup Test] Search successful!");
-  } catch (error) {
-    console.error("❌ [Startup Test] Search failed!");
-    if (error instanceof Error) {
-      console.error(`  - Error: ${error.message}\n`);
-    }
-  }
-}
-
 httpServer.listen(port, async () => {
   console.log(`Carparking MCP server listening on http://localhost:${port}`);
   console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
   console.log(
     `  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`
   );
-
-  await runStartupTest();
 });
