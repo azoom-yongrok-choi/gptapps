@@ -3,21 +3,16 @@ import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import PlaceCard from "./PlaceCard";
-import res from "./res.json";
 
 function App() {
-  const [places, setPlaces] = React.useState(res);
+  const [places, setPlaces] = React.useState([]);
 
   React.useEffect(() => {
     const loadData = () => {
       const toolOutput = window.openai?.toolOutput;
       
-      if (toolOutput?.parkings) {
-        console.log("✅ Found", toolOutput.parkings.length, "parkings");
-        setPlaces(toolOutput.parkings);
-      } else {
-        console.log("⏳ Waiting for data...");
-      }
+      if (toolOutput?.parkings) setPlaces(toolOutput.parkings);
+      
     };
 
     loadData();

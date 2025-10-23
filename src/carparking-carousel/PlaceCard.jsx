@@ -1,5 +1,4 @@
 import React from "react";
-import { Star } from "lucide-react";
 
 export default function PlaceCard({ place }) {
   if (!place) return null;
@@ -8,10 +7,7 @@ export default function PlaceCard({ place }) {
     <div className="min-w-[220px] select-none max-w-[220px] w-[65vw] sm:w-[220px] self-stretch flex flex-col">
       <div className="mt-3 flex flex-col flex-1 flex-auto">
         <div className="text-base font-medium truncate line-clamp-1">{place.name}</div>
-        <div className="text-xs mt-1 text-black/60 flex items-center gap-1">
-          <Star className="h-3 w-3" aria-hidden="true" />
-          {place.address}
-        </div>
+        <div className="text-xs mt-1 text-black/60 flex items-center gap-1">{place.address}</div>
         {place.spaceUpdatedAt ? (
           <div className="text-sm mt-2 text-black/80 flex-auto">
             {place.spaceUpdatedAt}
