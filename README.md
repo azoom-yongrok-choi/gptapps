@@ -1,3 +1,8 @@
+# 設定方法
+[Click up](https://app.clickup.com/909351/v/dc/vr17-93518)
+
+以下はOpen AIのReadmeになります。
+
 # Apps SDK Examples Gallery
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
