@@ -148,7 +148,7 @@ const toolInputSchema = {
 
 const tools: Tool[] = [
   {
-    name: "carparking-list",
+    name: "carparking-search",
     description:
       "指定された条件に基づいて駐車場を検索し、カルーセル形式で表示します",
     inputSchema: toolInputSchema,
@@ -238,7 +238,7 @@ function createCarparkingServer(): Server {
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
       switch (request.params.name) {
-        case "carparking-list": {
+        case "carparking-search": {
           const args = toolInputParser.parse(request.params.arguments ?? {});
 
           const context: Context = {
