@@ -17,7 +17,7 @@ export default function PlaceCard({ place }) {
         <div className="mt-5">
           <button
             type="button"
-            className="cursor-pointer inline-flex items-center rounded-full bg-[#F46C21] text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cursor-pointer inline-flex items-center rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => {
               window.open(`https://carparking.jp/detail/${place.id}`, '_blank');
             }}
