@@ -25,6 +25,7 @@ const sampleTargets: string[] = [
 ];
 const productionTargets: string[] = [
   "carparking-carousel",
+  "carparking-search-input",
 ];
 
 const isDev = process.env.NODE_ENV === "development";

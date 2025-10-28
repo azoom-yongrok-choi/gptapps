@@ -36,32 +36,38 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const assetsDir = join(__dirname, "../../assets");
 
-type CarparkingWidget = {
+// ============================================================================
+// Widget Types & Configuration
+// ============================================================================
+
+type WidgetConfig = {
   id: string;
   title: string;
-  templateUri: string;
   invoking: string;
   invoked: string;
-  html: string;
   responseText: string;
 };
 
-const carparkingMeta = {
-  "openai/outputTemplate": "ui://widget/carparking-carousel.html",
-  "openai/toolInvocation/invoking": "Carousel some car parking spots",
-  "openai/toolInvocation/invoked": "Served a fresh car parking carousel",
-  "openai/widgetAccessible": true,
-  "openai/resultCanProduceWidget": true,
-} as const;
+type Widget = WidgetConfig & {
+  templateUri: string;
+  html: string;
+};
 
-const carparkingWidget: CarparkingWidget = {
-  id: "carparking-carousel",
-  title: "Show CarParking Carousel",
-  templateUri: "ui://widget/carparking-carousel.html",
-  invoking: "Carousel some car parking spots",
-  invoked: "Served a fresh car parking carousel",
-  html: `
-<div id="carparking-carousel-root"></div>
+type WidgetMeta = {
+  "openai/outputTemplate": string;
+  "openai/toolInvocation/invoking": string;
+  "openai/toolInvocation/invoked": string;
+  "openai/widgetAccessible": true;
+  "openai/resultCanProduceWidget": true;
+};
+
+// ============================================================================
+// Widget Factory Functions
+// ============================================================================
+
+function createWidgetLoaderScript(assetName: string, rootId: string): string {
+  return `
+<div id="${rootId}-root"></div>
 <script>
   const loadWithHeaders = (url, type) => {
     fetch(url, { headers: { 'ngrok-skip-browser-warning': '1' } })
@@ -79,22 +85,78 @@ const carparkingWidget: CarparkingWidget = {
         }
       });
   };
-  loadWithHeaders('${NGROK_URL}/assets/carparking-carousel-2d2b.css', 'css');
-  loadWithHeaders('${NGROK_URL}/assets/carparking-carousel-2d2b.js', 'js');
+  loadWithHeaders('${NGROK_URL}/assets/${assetName}.css', 'css');
+  loadWithHeaders('${NGROK_URL}/assets/${assetName}.js', 'js');
 </script>
-    `.trim(),
-  responseText: "Rendered a CarParking carousel!",
+  `.trim();
+}
+
+function createWidget(config: WidgetConfig, assetName: string): Widget {
+  return {
+    ...config,
+    templateUri: `ui://widget/${config.id}.html`,
+    html: createWidgetLoaderScript(assetName, config.id),
+  };
+}
+
+function createWidgetMeta(widget: Widget): WidgetMeta {
+  return {
+    "openai/outputTemplate": widget.templateUri,
+    "openai/toolInvocation/invoking": widget.invoking,
+    "openai/toolInvocation/invoked": widget.invoked,
+    "openai/widgetAccessible": true,
+    "openai/resultCanProduceWidget": true,
+  };
+}
+
+// ============================================================================
+// Widget Definitions
+// ============================================================================
+
+type WidgetToolMapping = {
+  toolName: string;
+  widgetConfig: WidgetConfig;
+  assetName?: string; // Optional: defaults to widget id
 };
 
-const rangeSchema = {
-  type: ["object", "null"] as const,
-  properties: { min: { type: "number" }, max: { type: "number" } },
-};
+const WIDGET_TOOL_MAPPINGS: WidgetToolMapping[] = [
+  {
+    toolName: "carparking-search",
+    widgetConfig: {
+      id: "carparking-carousel",
+      title: "Show CarParking Carousel",
+      invoking: "Carousel some car parking spots",
+      invoked: "Served a fresh car parking carousel",
+      responseText: "Rendered a CarParking carousel!",
+    },
+    assetName: "carparking-carousel-2d2b",
+  },
+  {
+    toolName: "carparking-search-input",
+    widgetConfig: {
+      id: "carparking-search-input",
+      title: "Show CarParking Search Input",
+      invoking: "Opening car parking search form",
+      invoked: "Served a car parking search input form",
+      responseText: "Rendered a CarParking search input form!",
+    },
+    assetName: "carparking-search-input-2d2b",
+  },
+];
 
-const rangeZod = z
-  .object({ min: z.number(), max: z.number() })
-  .nullable()
-  .optional();
+// Create widgets with their meta information, using tool name as the key
+const widgets = new Map<string, { widget: Widget; meta: WidgetMeta }>();
+
+for (const mapping of WIDGET_TOOL_MAPPINGS) {
+  const assetName = mapping.assetName || mapping.widgetConfig.id;
+  const widget = createWidget(mapping.widgetConfig, assetName);
+  const meta = createWidgetMeta(widget);
+  widgets.set(mapping.toolName, { widget, meta });
+}
+
+// ============================================================================
+// Tool Input Schema
+// ============================================================================
 
 const toolInputParser = z.object({
   geoCircle: z.object({
@@ -102,80 +164,73 @@ const toolInputParser = z.object({
     lng: z.number(),
     radiusKm: z.number(),
   }),
-  vehicleDimensions: z
-    .object({
-      length: rangeZod,
-      width: rangeZod,
-      height: rangeZod,
-      weight: rangeZod,
-    })
-    .optional(),
-  roofTypes: z.array(z.number()).optional(),
 });
 
-const toolInputSchema = {
-  type: "object",
-  properties: {
-    geoCircle: {
-      type: "object",
-      description: "検索範囲の円形エリア",
-      properties: {
-        lat: { type: "number", description: "中心座標の緯度" },
-        lng: { type: "number", description: "中心座標の経度" },
-        radiusKm: { type: "number", description: "検索半径（キロメートル）" },
-      },
-      required: ["lat", "lng", "radiusKm"],
-    },
-    vehicleDimensions: {
-      type: "object",
-      description: "車の寸法（全長・全幅・全高・総重量）",
-      properties: {
-        length: rangeSchema,
-        width: rangeSchema,
-        height: rangeSchema,
-        weight: rangeSchema,
-      },
-    },
-    roofTypes: {
-      type: "array",
-      description: "屋根タイプ 1:屋内、2:屋外、-1:不明",
-      items: { type: "number", enum: [1, 2, -1] },
-    },
-  },
-  required: ["geoCircle"],
-  additionalProperties: false,
-} as const;
+// ============================================================================
+// MCP Tools, Resources, and Templates
+// ============================================================================
 
 const tools: Tool[] = [
   {
     name: "carparking-search",
     description:
       "指定された条件に基づいて駐車場を検索し、カルーセル形式で表示します",
-    inputSchema: toolInputSchema,
+    inputSchema: {
+      type: "object",
+      properties: {
+        geoCircle: {
+          type: "object",
+          description: "検索範囲の円形エリア",
+          properties: {
+            lat: { type: "number", description: "中心座標の緯度" },
+            lng: { type: "number", description: "中心座標の経度" },
+            radiusKm: {
+              type: "number",
+              description: "検索半径（キロメートル）",
+            },
+          },
+          required: ["lat", "lng", "radiusKm"],
+        },
+      },
+      required: ["geoCircle"],
+      additionalProperties: false,
+    },
     title: "Show Parking List as Carousel Format",
-    _meta: carparkingMeta,
+    _meta: widgets.get("carparking-search")!.meta,
+  },
+  {
+    name: "carparking-search-input",
+    description:
+      "駐車場を検索するための入力フォームを表示します。駅名と検索半径を入力できます",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      additionalProperties: false,
+    },
+    title: "Show Parking Search Input Form",
+    _meta: widgets.get("carparking-search-input")!.meta,
   },
 ];
 
-const resources: Resource[] = [
-  {
-    uri: carparkingWidget.templateUri,
-    name: carparkingWidget.title,
-    description: `${carparkingWidget.title} widget markup`,
+const resources: Resource[] = Array.from(widgets.values()).map(
+  ({ widget, meta }) => ({
+    uri: widget.templateUri,
+    name: widget.title,
+    description: `${widget.title} widget markup`,
     mimeType: "text/html+skybridge",
-    _meta: carparkingMeta,
-  },
-];
+    _meta: meta,
+  })
+);
 
-const resourceTemplates: ResourceTemplate[] = [
-  {
-    uriTemplate: carparkingWidget.templateUri,
-    name: carparkingWidget.title,
-    description: `${carparkingWidget.title} widget markup`,
+const resourceTemplates: ResourceTemplate[] = Array.from(widgets.values()).map(
+  ({ widget, meta }) => ({
+    uriTemplate: widget.templateUri,
+    name: widget.title,
+    description: `${widget.title} widget markup`,
     mimeType: "text/html+skybridge",
-    _meta: carparkingMeta,
-  },
-];
+    _meta: meta,
+  })
+);
 
 function createCarparkingServer(): Server {
   const server = new Server(
@@ -201,11 +256,18 @@ function createCarparkingServer(): Server {
   server.setRequestHandler(
     ReadResourceRequestSchema,
     async (request: ReadResourceRequest) => {
-      const widget = carparkingWidget;
+      const uri = request.params.uri;
 
-      if (!widget) {
-        throw new Error(`Unknown resource: ${request.params.uri}`);
+      // Find widget by templateUri
+      const widgetEntry = Array.from(widgets.values()).find(
+        ({ widget }) => widget.templateUri === uri
+      );
+
+      if (!widgetEntry) {
+        throw new Error(`Unknown resource: ${uri}`);
       }
+
+      const { widget, meta } = widgetEntry;
 
       return {
         contents: [
@@ -213,7 +275,7 @@ function createCarparkingServer(): Server {
             uri: widget.templateUri,
             mimeType: "text/html+skybridge",
             text: widget.html,
-            _meta: carparkingMeta,
+            _meta: meta,
           },
         ],
       };
@@ -237,31 +299,14 @@ function createCarparkingServer(): Server {
   server.setRequestHandler(
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
-      switch (request.params.name) {
+      const toolName = request.params.name;
+      console.log("📤 Calling tool:", toolName);
+      switch (toolName) {
         case "carparking-search": {
           const args = toolInputParser.parse(request.params.arguments ?? {});
-
-          const context: Context = {
-            session: {},
-          };
-
+          const context: Context = { session: {} };
           const result = await parkingSearchLoad(args, context);
           const resultText = JSON.stringify(result, null, 2);
-
-          const response = {
-            content: [
-              {
-                type: "text",
-                text: resultText,
-              },
-            ],
-            structuredContent: {
-              dataSetId: result.dataSetId,
-              parkings: result.parkings,
-              searchParams: args,
-            },
-            _meta: carparkingMeta,
-          };
 
           console.log(
             "📤 Returning response with",
@@ -269,11 +314,34 @@ function createCarparkingServer(): Server {
             "parkings"
           );
 
-          return response;
+          return {
+            content: [{ type: "text", text: resultText }],
+            structuredContent: {
+              dataSetId: result.dataSetId,
+              parkings: result.parkings,
+              searchParams: args,
+            },
+            _meta: widgets.get("carparking-search")!.meta,
+          };
+        }
+
+        case "carparking-search-input": {
+          const widgetEntry = widgets.get(toolName);
+          if (!widgetEntry) {
+            throw new Error(`Unknown tool: ${toolName}`);
+          }
+
+          const { widget, meta } = widgetEntry;
+          console.log(`📤 Returning ${widget.title}`);
+
+          return {
+            content: [{ type: "text", text: widget.responseText }],
+            _meta: meta,
+          };
         }
 
         default:
-          throw new Error(`Unknown tool: ${request.params.name}`);
+          throw new Error(`Unknown tool: ${toolName}`);
       }
     }
   );
