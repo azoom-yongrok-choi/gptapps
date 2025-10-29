@@ -4,7 +4,7 @@ import {
   type ServerResponse,
 } from "node:http";
 import { URL } from "node:url";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -31,7 +31,13 @@ import type { Context } from "./type.js";
 import dotenv from "dotenv";
 dotenv.config();
 
-const NGROK_URL = process.env.NGROK_URL || "http://localhost:8000";
+const NODE_ENV = process.env.NODE_ENV || "development";
+const STATIC_ASSETS_URL =
+  process.env.STATIC_ASSETS_URL ||
+  (NODE_ENV === "production"
+    ? ""
+    : process.env.NGROK_URL || "http://localhost:8000");
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const assetsDir = join(__dirname, "../../assets");
@@ -62,15 +68,45 @@ type WidgetMeta = {
 };
 
 // ============================================================================
+// Asset Discovery
+// ============================================================================
+function findAssetName(prefix: string): string {
+  try {
+    const files = readdirSync(assetsDir);
+    const jsFile = files.find((f) => f.startsWith(prefix) && f.endsWith(".js"));
+
+    if (!jsFile) {
+      console.error(`❌ Asset not found for prefix: ${prefix}`);
+      console.error(`   Available files in ${assetsDir}:`, files);
+      throw new Error(
+        `Asset not found: ${prefix}*.js in ${assetsDir}. Did you run 'pnpm run build'?`
+      );
+    }
+
+    const assetName = jsFile.replace(/\.(js|css|html)$/, "");
+    return assetName;
+  } catch (error) {
+    console.error(`❌ Failed to scan assets directory:`, error);
+    throw error;
+  }
+}
+
+// ============================================================================
 // Widget Factory Functions
 // ============================================================================
 
 function createWidgetLoaderScript(assetName: string, rootId: string): string {
+  const baseUrl = STATIC_ASSETS_URL || "";
+  const isDevMode = !!STATIC_ASSETS_URL && STATIC_ASSETS_URL.includes("ngrok");
+
   return `
 <div id="${rootId}-root"></div>
 <script>
   const loadWithHeaders = (url, type) => {
-    fetch(url, { headers: { 'ngrok-skip-browser-warning': '1' } })
+    const headers = ${
+      isDevMode ? "{ 'ngrok-skip-browser-warning': '1' }" : "{}"
+    };
+    fetch(url, { headers })
       .then(r => r.text())
       .then(content => {
         if (type === 'css') {
@@ -83,10 +119,11 @@ function createWidgetLoaderScript(assetName: string, rootId: string): string {
           script.textContent = content;
           document.body.appendChild(script);
         }
-      });
+      })
+      .catch(err => console.error('Failed to load', type, 'from', url, err));
   };
-  loadWithHeaders('${NGROK_URL}/assets/${assetName}.css', 'css');
-  loadWithHeaders('${NGROK_URL}/assets/${assetName}.js', 'js');
+  loadWithHeaders('${baseUrl}/assets/${assetName}.css', 'css');
+  loadWithHeaders('${baseUrl}/assets/${assetName}.js', 'js');
 </script>
   `.trim();
 }
@@ -116,7 +153,7 @@ function createWidgetMeta(widget: Widget): WidgetMeta {
 type WidgetToolMapping = {
   toolName: string;
   widgetConfig: WidgetConfig;
-  assetName?: string; // Optional: defaults to widget id
+  assetPrefix: string;
 };
 
 const WIDGET_TOOL_MAPPINGS: WidgetToolMapping[] = [
@@ -129,7 +166,7 @@ const WIDGET_TOOL_MAPPINGS: WidgetToolMapping[] = [
       invoked: "Served a fresh car parking carousel",
       responseText: "Rendered a CarParking carousel!",
     },
-    assetName: "carparking-carousel-2d2b",
+    assetPrefix: "carparking-carousel",
   },
   {
     toolName: "carparking-search-input",
@@ -140,15 +177,18 @@ const WIDGET_TOOL_MAPPINGS: WidgetToolMapping[] = [
       invoked: "Served a car parking search input form",
       responseText: "Rendered a CarParking search input form!",
     },
-    assetName: "carparking-search-input-2d2b",
+    assetPrefix: "carparking-search-input",
   },
 ];
 
 // Create widgets with their meta information, using tool name as the key
+// Assets are auto-discovered at runtime from the assets directory
+console.log("🔍 Discovering assets...");
 const widgets = new Map<string, { widget: Widget; meta: WidgetMeta }>();
 
 for (const mapping of WIDGET_TOOL_MAPPINGS) {
-  const assetName = mapping.assetName || mapping.widgetConfig.id;
+  // 런타임에 실제 asset 파일 이름 자동 감지
+  const assetName = findAssetName(mapping.assetPrefix);
   const widget = createWidget(mapping.widgetConfig, assetName);
   const meta = createWidgetMeta(widget);
   widgets.set(mapping.toolName, { widget, meta });
@@ -443,6 +483,24 @@ const httpServer = createServer(
       return;
     }
 
+    if (req.method === "GET" && url.pathname === "/health") {
+      res.writeHead(200, {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      });
+      res.end(
+        JSON.stringify({
+          status: "healthy",
+          service: "carparking-mcp",
+          version: "0.1.0",
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environment: NODE_ENV,
+        })
+      );
+      return;
+    }
+
     if (req.method === "GET" && url.pathname === ssePath) {
       await handleSseRequest(res);
       return;
@@ -498,9 +556,15 @@ httpServer.on("clientError", (err: Error, socket) => {
 });
 
 httpServer.listen(port, async () => {
-  console.log(`Carparking MCP server listening on http://localhost:${port}`);
-  console.log(`  SSE stream: GET http://localhost:${port}${ssePath}`);
+  console.log(`🚀 Carparking MCP server listening on http://localhost:${port}`);
+  console.log(`   Environment: ${NODE_ENV}`);
+  console.log(`   SSE stream: GET http://localhost:${port}${ssePath}`);
   console.log(
-    `  Message post endpoint: POST http://localhost:${port}${postPath}?sessionId=...`
+    `   Message post: POST http://localhost:${port}${postPath}?sessionId=...`
+  );
+  console.log(`   Health check: GET http://localhost:${port}/health`);
+  console.log(`   Assets URL: ${STATIC_ASSETS_URL || "(relative path)"}`);
+  console.log(
+    `   BigQuery Project: ${process.env.BIGQUERY_PROJECT || "(not set)"}`
   );
 });

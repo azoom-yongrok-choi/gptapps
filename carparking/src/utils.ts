@@ -1,33 +1,9 @@
-import type {
-  ParkingResponseType,
-  ParkingInfoType,
-  LoadParams,
-  Context,
-} from "./type.js";
+import type { LoadParams, Context } from "./type.js";
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 import { gunzipSync, gzipSync } from "node:zlib";
 import { LRUCache } from "lru-cache";
 import { camelCase } from "scule";
-
-export const getParkingInfo = (
-  parking: ParkingResponseType
-): ParkingInfoType => {
-  return {
-    id: parking.id,
-    region: parking.region,
-    updatedAt: parking.updatedAt,
-    status: parking.status,
-    isVisible: parking.isVisible,
-    address: parking.address,
-    spaces: parking.spaces,
-    prefecture: parking.prefecture,
-    city: parking.city,
-    nearbyStations: parking.nearbyStations,
-    name: parking.name,
-    location: parking.location,
-  };
-};
 
 //
 export function jsonResponse<T extends (...args: any) => Promise<any>>(fn: T) {

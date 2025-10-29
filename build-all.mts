@@ -14,24 +14,10 @@ const PER_ENTRY_CSS_GLOB = "**/*.{css,pcss,scss,sass}";
 const PER_ENTRY_CSS_IGNORE = "**/*.module.*".split(",").map((s) => s.trim());
 const GLOBAL_CSS_LIST = [path.resolve("src/index.css")];
 
-const sampleTargets: string[] = [
-  "todo",
-  "solar-system",
-  "pizzaz",
-  "pizzaz-carousel",
-  "pizzaz-list",
-  "pizzaz-albums",
-  "pizzaz-video",
-];
-const productionTargets: string[] = [
+const targets: string[] = [
   "carparking-carousel",
   "carparking-search-input",
-];
-
-const isDev = process.env.NODE_ENV === "development";
-const targets: string[] = isDev
-  ? [...productionTargets, ...sampleTargets]
-  : productionTargets;
+]
 
 const builtNames: string[] = [];
 
