@@ -96,14 +96,6 @@ export interface Space {
   rentGroups: RentGroup[];
 }
 
-export interface SimpleParking {
-  id: number;
-  name: string;
-  address: string | null;
-  space_updated_at: string;
-  can_sublease: boolean;
-}
-
 export interface Parking {
   /* basic metadata */
   id: number;
