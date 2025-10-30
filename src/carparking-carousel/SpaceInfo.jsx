@@ -28,19 +28,44 @@ export default function SpaceInfo({ space }) {
     return `設備${space.facility}`;
   };
 
+  const hasDimensions = space.length > 0 || space.width > 0 || space.height > 0 || space.weight > 0;
+
   return (
     <div className="p-3 bg-gray-50 rounded-lg mb-2 text-xs space-y-1">
       <div className="font-semibold text-sm text-gray-900">{space.name}</div>
       <div className="text-blue-600 font-medium">{getPrice()}</div>
+      
+      {hasDimensions && (
+        <div className="flex flex-wrap mt-2 text-xs text-gray-600">
+          {space.length > 0 && (
+            <span className="px-2 py-0.5 bg-blue-50">
+              長さ: {space.length}mm
+            </span>
+          )}
+          {space.width > 0 && (
+            <span className="px-2 py-0.5 bg-blue-50">
+              幅: {space.width}mm
+            </span>
+          )}
+          {space.height > 0 && (
+            <span className="px-2 py-0.5 bg-blue-50">
+              高さ: {space.height}mm
+            </span>
+          )}
+          {space.weight > 0 && (
+            <span className="px-2 py-0.5 bg-blue-50">
+              重量: {space.weight}kg
+            </span>
+          )}
+        </div>
+      )}
       <div className="flex flex-wrap gap-1 mt-2">
-        <span className="px-2 py-0.5 bg-white rounded border text-gray-700">
+        <span className="px-2 py-0.5 bg-orange-100 rounded text-orange-700 text-xs">
           {getLocationText()}
         </span>
-        <span className="px-2 py-0.5 bg-white rounded border text-gray-700">
+        <span className="px-2 py-0.5 bg-orange-100 rounded text-orange-700 text-xs">
           {getFacilityText()}
         </span>
-      </div>
-      <div className="flex flex-wrap gap-1 mt-1">
         {space.isAvailableForLargeCars === 1 && (
           <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">大型車</span>
         )}
