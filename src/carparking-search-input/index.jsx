@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { Search } from "lucide-react";
+import { getGeocode } from "../get-geocode";
 
 function App() {
-  const [stationName, setStationName] = React.useState("");
-  const [radius, setRadius] = React.useState(1);
+  const [stationName, setStationName] = useState("");
+  const [radius, setRadius] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleStationChange = (e) => {
     setStationName(e.target.value);
@@ -16,15 +18,23 @@ function App() {
 
   const handleSearch = async () => {
     const station = stationName.trim();
-    console.log({station, radius});
+    setIsLoading(true);
     if (!station || radius === 0) return;
   
-    await window.openai.sendFollowUpMessage({
-      prompt: `
-        You must use the "carparking-search" tool.
-        Search for parking near "${station}" station within ${radius} km radius. 
-      `,
-    });
+    try {
+      const geoPoint = await getGeocode(station);
+      
+      await window.openai.sendFollowUpMessage({
+        prompt: `
+          You must use the "carparking-search" tool with the following parameters: 
+          Search for parking near latitude: ${geoPoint.lat}, longitude: ${geoPoint.lng} within radius: ${radius} km. 
+        `,
+      });
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -34,6 +44,14 @@ function App() {
   };
 
   const isFormValid = stationName.trim() && radius > 0;
+
+  useEffect(() => {
+    const handleToolOutput = (e) => {
+      if (e.detail?.globals?.toolOutput) setIsLoading(false);
+    };
+    window.addEventListener("openai:set_globals", handleToolOutput);
+    return () => window.removeEventListener("openai:set_globals", handleToolOutput);
+  }, []);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
@@ -76,7 +94,7 @@ function App() {
             
             <button
               onClick={handleSearch}
-              disabled={!isFormValid}
+              disabled={!isFormValid || isLoading}
               className={`w-full px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg ${
                 isFormValid
                   ? "bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-xl active:scale-95 transform cursor-pointer"
