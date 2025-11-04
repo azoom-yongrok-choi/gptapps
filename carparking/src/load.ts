@@ -21,7 +21,7 @@ async function findParkingsByGeoCircle(
     DECLARE lng FLOAT64 DEFAULT @lng;
     DECLARE radiusKm FLOAT64 DEFAULT @radiusKm;
     DECLARE includeNonReferral BOOL DEFAULT @includeNonReferral;
-    SELECT * FROM \`${env.BIGQUERY_PROJECT}.parking.nearest_parkings\`(lat, lng, radiusKm, includeNonReferral) LIMIT 100;
+    SELECT * FROM \`${env.BIGQUERY_PROJECT}.parking.nearest_parkings\`(lat, lng, radiusKm, includeNonReferral) LIMIT 30;
   `;
   const [rows] = await bigquery.query({
     query,

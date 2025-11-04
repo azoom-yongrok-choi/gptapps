@@ -96,33 +96,20 @@ export interface Space {
   rentGroups: RentGroup[];
 }
 
-export interface Parking {
+export interface ParkingInfo {
   /* basic metadata */
   id: number;
   name: string;
   canSublease: boolean;
   address: string | null;
-  lat: number;
-  lng: number;
   distanceKm: number;
 
   /* aggregated spaces (COALESCE of sublease / brokerage) */
   spaces: Space[];
 }
 
+export interface Parking extends ParkingInfo, GeoPoint {}
+
 export interface Context {
   session?: Record<string, any>;
-}
-
-export interface ParkingSearchResult {
-  id: number;
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  space_updated_at: string;
-  no_referral_status: number;
-  can_sublease: boolean;
-  distance_km: number;
-  spaces: Space[];
 }
