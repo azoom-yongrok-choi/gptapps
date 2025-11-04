@@ -1,28 +1,39 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";
-import { ArrowLeft, ArrowRight, Filter } from "lucide-react";
+import { ArrowLeft, ArrowRight, Filter, Map } from "lucide-react";
 import PlaceCard from "./PlaceCard";
 import FilterModal from "./FilterModal";
-import dummy from "./dummy.json";
+import CarparkingMap from "./CarparkingMap";
+import dummy from "../dummy.json";
 import { ROOF_ENUM } from "./utils";
 
-const isDev = true;
+const isDev = import.meta.env.VITE_ENV === "development";
+
+const MODAL_TYPE = {
+  FILTER: 'filter',
+  MAP: 'map',
+  NULL: null
+};
 
 function App() {
-  const [originalPlaces, setOriginalPlaces] = React.useState([]);
-  const [places, setPlaces] = React.useState([]);
-  const [isFilterOpen, setIsFilterOpen] = React.useState(false);
+  const [originalPlaces, setOriginalPlaces] = useState([]);
+  const [places, setPlaces] = useState([]);
+  const [modalType, setModalType] = useState(MODAL_TYPE.NULL);
   
-  const [filters, setFilters] = React.useState({
+  const handleModal= (type) => {
+    setModalType(type);
+  };
+
+  const [filters, setFilters] = useState({
     price: { min: -Infinity, max: Infinity },
     size: { large: false, highRoof: false, middleRoof: false },
     location: { indoor: false, outdoor: false, unknown: false },
     facility: { flat: false, mechanical: false },
     other: { allDay: false, truckParking: false, newListing: false, evCharging: false }
   });
-  console.log(filters);
-  const applyFilters = React.useCallback((data, filterOptions) => {
+  
+  const applyFilters = useCallback((data, filterOptions) => {
     return data.filter(place => {
       if (!place.spaces || !Array.isArray(place.spaces) || place.spaces.length === 0) {
         return false;
@@ -94,7 +105,7 @@ function App() {
     });
   }, []);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadData = () => {
       if (isDev) {
         setOriginalPlaces(dummy);
@@ -132,20 +143,16 @@ function App() {
     slidesToScroll: "auto",
     dragFree: false,
   });
-  const [canPrev, setCanPrev] = React.useState(false);
-  const [canNext, setCanNext] = React.useState(false);
+  const [canPrev, setCanPrev] = useState(false);
+  const [canNext, setCanNext] = useState(false);
 
   const handleApplyFilters = () => {
     const filtered = applyFilters(originalPlaces, filters);
     setPlaces(filtered);
-    setIsFilterOpen(false);
+    handleModal(null);
   };
 
-  const handleCloseFilter = () => {
-    setIsFilterOpen(false);
-  };
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (!emblaApi) return;
     const updateButtons = () => {
       setCanPrev(emblaApi.canScrollPrev());
@@ -162,22 +169,36 @@ function App() {
 
   return (
     <div className="antialiased relative w-full text-black bg-white p-4">
-      <div className="flex">
+      <div className="flex gap-2 justify-between">
         <button
-          onClick={() => setIsFilterOpen(true)}
+          onClick={() => handleModal(MODAL_TYPE.FILTER)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
           type="button"
         >
           <Filter className="w-4 h-4" />
           条件を指定して絞り込む
         </button>
+        <button
+          onClick={() => handleModal(MODAL_TYPE.MAP)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
+          type="button"
+        >
+          <Map className="w-4 h-4" />
+          地図で表示
+        </button>
       </div>
 
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex gap-4 max-sm:mx-5 items-stretch">
-          {places.map((place) => (
-            <PlaceCard key={place.id} place={place} />
-          ))}
+          {
+            places.length > 0 ?  places.map((place) => (
+              <PlaceCard key={place.id} place={place} />
+            )) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-gray-500">No places found</div>
+              </div>
+            )
+          }
         </div>
       </div>
       {/* Edge gradients */}
@@ -245,12 +266,48 @@ function App() {
       )}
 
       <FilterModal
-        isOpen={isFilterOpen}
-        onClose={handleCloseFilter}
+        isOpen={modalType === MODAL_TYPE.FILTER}
+        onClose={() => handleModal(MODAL_TYPE.NULL)}
         onApply={handleApplyFilters}
         filters={filters}
         setFilters={setFilters}
       />
+
+      {modalType === MODAL_TYPE.MAP && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+          onClick={() => handleModal(MODAL_TYPE.NULL)}
+        >
+          <div
+            className="relative w-full h-full max-w-7xl max-h-[90vh] m-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => handleModal(MODAL_TYPE.NULL)}
+              className="absolute top-4 right-4 z-[10000] inline-flex items-center justify-center w-10 h-10 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-gray-100 cursor-pointer transition-colors"
+              type="button"
+              aria-label="Close map"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full">
+              <CarparkingMap places={places} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
