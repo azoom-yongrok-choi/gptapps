@@ -15,7 +15,7 @@ export default function SpaceInfo({ space }) {
         return minPrice.toLocaleString() + '円';
       }
     }
-    return '価格未設定';
+    return '-円';
   };
 
   const getLocationText = () => {

@@ -61,13 +61,13 @@ export default function FilterModal({ isOpen, onClose, onApply, filters, setFilt
           </div>
 
           {/* Content */}
-          <div className="bg-green-50 p-6 grid grid-cols-2 gap-4">
+          <div className="bg-green-50 p-2 grid grid-cols-2 gap-4">
             {/* 賃料*/}
             <div className="bg-white rounded-lg flex gap-4">
-                <div className="bg-green-600 h-full text-white px-4 py-2 rounded font-medium min-w-[120px] flex items-center justify-center">
+                <div className="bg-green-600 h-full text-white p-2 rounded font-medium min-w-[120px] flex items-center justify-center">
                   賃料
                 </div>
-                <div className="flex items-center gap-2 flex-1">
+                <div className="flex items-center gap-2 flex-1 flex-wrap content-center">
                   <select
                     value={filters.price?.min === -Infinity ? "-Infinity" : filters.price?.min}
                     onChange={(e) => handlePriceChange('min', e.target.value)}
@@ -102,7 +102,7 @@ export default function FilterModal({ isOpen, onClose, onApply, filters, setFilt
             <div className="bg-green-600 h-full text-white px-4 py-2 rounded font-medium min-w-[120px] flex items-center justify-center">
                 収容サイズ
             </div>
-            <div className="flex-1 flex flex-col justify-center py-4">
+            <div className="flex-1 flex flex-col justify-center py-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                 <input
                     type="checkbox"
@@ -144,7 +144,7 @@ export default function FilterModal({ isOpen, onClose, onApply, filters, setFilt
             <div className="bg-green-600 h-full text-white px-4 py-2 rounded font-medium min-w-[120px] flex items-center justify-center">
                 屋内外
               </div>
-              <div className="flex-1 flex flex-col justify-center py-4">
+              <div className="flex-1 flex flex-col justify-center py-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -180,7 +180,7 @@ export default function FilterModal({ isOpen, onClose, onApply, filters, setFilt
                 <div className="bg-green-600 h-full text-white px-4 py-2 rounded font-medium min-w-[120px] flex items-center justify-center">
                     設備
                 </div>
-                <div className="flex-1 flex flex-col justify-center py-4">
+                <div className="flex-1 flex flex-col justify-center py-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
@@ -209,7 +209,7 @@ export default function FilterModal({ isOpen, onClose, onApply, filters, setFilt
                 <div className="bg-green-600 h-full text-white px-4 py-2 rounded font-medium min-w-[120px] flex items-center justify-center">
                     その他
                 </div>
-                <div className="flex-1 flex flex-col justify-center py-4">
+                <div className="flex-1 flex flex-col justify-center py-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
