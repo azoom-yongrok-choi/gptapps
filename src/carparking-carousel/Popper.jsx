@@ -1,67 +1,54 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import SpaceInfo from "./SpaceInfo.jsx";
 
-
-export default function Popper({ place, position, map, onClose }) {
-  const [pixelPosition, setPixelPosition] = useState(null);
+export default function Popper({ place, map, onClose }) {
+  const [containerHeight, setContainerHeight] = useState(400);
+  const popperRef = useRef(null);
 
   useEffect(() => {
     if (!map) return;
 
-    const updatePosition = () => {
-      const projection = map.getProjection();
-      if (!projection) return;
-
-      const worldCoordinate = projection.fromLatLngToPoint(
-        new google.maps.LatLng(position.lat, position.lng)
-      );
-      
-      if (!worldCoordinate) return;
-
+    const updateHeight = () => {
       const mapDiv = map.getDiv();
-      const mapBounds = map.getBounds();
-      
-      if (!mapBounds) return;
-
-      const topRight = projection.fromLatLngToPoint(mapBounds.getNorthEast());
-      const bottomLeft = projection.fromLatLngToPoint(mapBounds.getSouthWest());
-
-      if (!topRight || !bottomLeft) return;
-
-      const mapWidth = topRight.x - bottomLeft.x;
-      const mapHeight = bottomLeft.y - topRight.y;
-
-      const x = (worldCoordinate.x - bottomLeft.x) / mapWidth * mapDiv.offsetWidth;
-      const y = (worldCoordinate.y - topRight.y) / mapHeight * mapDiv.offsetHeight;
-
-      setPixelPosition({ x, y: y - 36 });
+      if (mapDiv && mapDiv.parentElement) {
+        const parentHeight = mapDiv.parentElement.offsetHeight;
+        setContainerHeight(parentHeight);
+      }
     };
 
-    updatePosition();
+    updateHeight();
     
-    const listener = google.maps.event.addListener(map, 'bounds_changed', updatePosition);
-    const zoomListener = google.maps.event.addListener(map, 'zoom_changed', updatePosition);
+    const listener = google.maps.event.addListener(map, 'bounds_changed', updateHeight);
+    const zoomListener = google.maps.event.addListener(map, 'zoom_changed', updateHeight);
+
+    // ResizeObserver를 사용하여 부모 컨테이너 높이 변경 감지
+    const resizeObserver = new ResizeObserver(() => {
+      updateHeight();
+    });
+
+    const mapDiv = map.getDiv();
+    if (mapDiv && mapDiv.parentElement) {
+      resizeObserver.observe(mapDiv.parentElement);
+    }
 
     return () => {
       google.maps.event.removeListener(listener);
       google.maps.event.removeListener(zoomListener);
+      resizeObserver.disconnect();
     };
-  }, [map, position]);
-
-  if (!pixelPosition) return null;
+  }, [map]);
 
   return (
     <div
-      className="absolute z-50 bg-white rounded-lg shadow-xl border border-gray-200 w-80 max-h-96 overflow-y-auto"
+      ref={popperRef}
+      className="absolute right-4 top-4 z-50 bg-white rounded-lg shadow-xl border border-gray-200 w-80 overflow-hidden flex flex-col"
       style={{
-        left: `${pixelPosition.x}px`,
-        top: `${pixelPosition.y}px`,
-        transform: 'translate(-50%, -100%)',
+        maxHeight: `${containerHeight - 32}px`, // 상하 여백 16px씩
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="flex-shrink-0 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <h3 className="font-semibold text-lg text-gray-800">{place.name}</h3>
         <button
           onClick={onClose}
@@ -73,7 +60,7 @@ export default function Popper({ place, position, map, onClose }) {
         </button>
       </div>
       
-      <div className="p-4 space-y-3">
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {place.address && (
           <div>
             <p className="text-sm text-gray-500 mb-1">住所</p>

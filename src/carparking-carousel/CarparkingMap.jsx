@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, useRef } from "react";
+import { useCallback, useMemo, useState, useRef, useEffect } from "react";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 import { decodeBigQueryDecimal } from "./utils.js";
 import Popper from "./Popper.jsx";
@@ -8,9 +8,7 @@ const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY||"";
 const DEFAULT_GEO_POINT = { lat: 35.690921, lng: 139.700258 };
 
 
-export default function CarparkingMap({places=[]}) {
-  const [selectedPlace, setSelectedPlace] = useState(null);
-  const [popperPosition, setPopperPosition] = useState(null);
+export default function CarparkingMap({places=[], selectedPlace, setSelectedPlace}) {
   const mapRef = useRef(null);
   const center = useMemo(() => {
     if(places.length === 0) return DEFAULT_GEO_POINT;
@@ -29,19 +27,16 @@ export default function CarparkingMap({places=[]}) {
   );
 
   const handleMarkerClick = useCallback((place, event) => {
-    setSelectedPlace(place);
-    if (event.latLng) {
-      setPopperPosition({
-        lat: event.latLng.lat(),
-        lng: event.latLng.lng(),
-      });
+    if (setSelectedPlace) {
+      setSelectedPlace(place);
     }
-  }, []);
+  }, [setSelectedPlace]);
 
   const handleClosePopper = useCallback(() => {
-    setSelectedPlace(null);
-    setPopperPosition(null);
-  }, []);
+    if (setSelectedPlace) {
+      setSelectedPlace(null);
+    }
+  }, [setSelectedPlace]);
 
   const handleMapClick = useCallback(() => {
     handleClosePopper();
@@ -91,10 +86,9 @@ export default function CarparkingMap({places=[]}) {
         })}
       </GoogleMap>
 
-      {selectedPlace && popperPosition && (
+      {selectedPlace && (
         <Popper
           place={selectedPlace}
-          position={popperPosition}
           map={mapRef.current}
           onClose={handleClosePopper}
         />

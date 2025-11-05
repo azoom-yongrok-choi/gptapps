@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import useEmblaCarousel from "embla-carousel-react";
-import { ArrowLeft, ArrowRight, Filter, Map } from "lucide-react";
+import { ArrowLeft, ArrowRight, Filter } from "lucide-react";
 import PlaceCard from "./PlaceCard";
 import FilterModal from "./FilterModal";
 import CarparkingMap from "./CarparkingMap";
@@ -10,20 +10,11 @@ import { ROOF_ENUM } from "./utils";
 
 const isDev = import.meta.env.VITE_ENV === "development";
 
-const MODAL_TYPE = {
-  FILTER: 'filter',
-  MAP: 'map',
-  NULL: null
-};
-
 function App() {
   const [originalPlaces, setOriginalPlaces] = useState([]);
   const [places, setPlaces] = useState([]);
-  const [modalType, setModalType] = useState(MODAL_TYPE.NULL);
-  
-  const handleModal= (type) => {
-    setModalType(type);
-  };
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [selectedPlace, setSelectedPlace] = useState(null);
 
   const [filters, setFilters] = useState({
     price: { min: -Infinity, max: Infinity },
@@ -40,7 +31,6 @@ function App() {
       }
 
       const hasMatchingSpace = place.spaces.some(space => {
-        // 가격 필터
         let spacePrice = space.hire;
         
         if (spacePrice === null && space.rentGroups && Array.isArray(space.rentGroups)) {
@@ -48,7 +38,7 @@ function App() {
             group.rooms?.map(room => room.wantedRent).filter(rent => rent !== null) || []
           );
           if (prices.length > 0) {
-            spacePrice = Math.min(...prices); // 최저가 사용
+            spacePrice = Math.min(...prices);
           }
         }
 
@@ -149,7 +139,11 @@ function App() {
   const handleApplyFilters = () => {
     const filtered = applyFilters(originalPlaces, filters);
     setPlaces(filtered);
-    handleModal(null);
+    setIsFilterOpen(false);
+  };
+
+  const handleCloseFilter = () => {
+    setIsFilterOpen(false);
   };
 
   useEffect(() => {
@@ -169,30 +163,37 @@ function App() {
 
   return (
     <div className="antialiased relative w-full text-black bg-white p-4">
+      {places.length > 0 && (
+        <div className="mb-4 h-[400px] rounded-lg overflow-hidden">
+          <CarparkingMap 
+            places={places} 
+            selectedPlace={selectedPlace}
+            setSelectedPlace={setSelectedPlace}
+          />
+        </div>
+      )}
+      
       <div className="flex gap-2 justify-between">
         <button
-          onClick={() => handleModal(MODAL_TYPE.FILTER)}
+          onClick={() => setIsFilterOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
           type="button"
         >
           <Filter className="w-4 h-4" />
           条件を指定して絞り込む
         </button>
-        <button
-          onClick={() => handleModal(MODAL_TYPE.MAP)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors cursor-pointer"
-          type="button"
-        >
-          <Map className="w-4 h-4" />
-          地図で表示
-        </button>
       </div>
 
       <div className="overflow-hidden" ref={emblaRef}>
-        <div className="flex gap-4 max-sm:mx-5 items-stretch">
+        <div className="flex gap-4 max-sm:mx-5 items-stretch p-4">
           {
             places.length > 0 ?  places.map((place) => (
-              <PlaceCard key={place.id} place={place} />
+              <PlaceCard 
+                key={place.id} 
+                place={place}
+                isSelected={selectedPlace?.id === place.id}
+                onClick={() => setSelectedPlace(place)}
+              />
             )) : (
               <div className="flex items-center justify-center h-full">
                 <div className="text-gray-500">No places found</div>
@@ -266,48 +267,12 @@ function App() {
       )}
 
       <FilterModal
-        isOpen={modalType === MODAL_TYPE.FILTER}
-        onClose={() => handleModal(MODAL_TYPE.NULL)}
+        isOpen={isFilterOpen}
+        onClose={handleCloseFilter}
         onApply={handleApplyFilters}
         filters={filters}
         setFilters={setFilters}
       />
-
-      {modalType === MODAL_TYPE.MAP && (
-        <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm"
-          onClick={() => handleModal(MODAL_TYPE.NULL)}
-        >
-          <div
-            className="relative w-full h-full max-w-7xl max-h-[90vh] m-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => handleModal(MODAL_TYPE.NULL)}
-              className="absolute top-4 right-4 z-[10000] inline-flex items-center justify-center w-10 h-10 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-gray-100 cursor-pointer transition-colors"
-              type="button"
-              aria-label="Close map"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden h-full">
-              <CarparkingMap places={places} />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
