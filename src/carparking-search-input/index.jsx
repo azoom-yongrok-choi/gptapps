@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Search } from "lucide-react";
 import { getGeocode } from "../get-geocode";
 
 function App() {
-  const [stationName, setStationName] = useState("");
+  const [address, setAddress] = useState("");
   const [radius, setRadius] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleStationChange = (e) => {
-    setStationName(e.target.value);
+    setAddress(e.target.value);
   };
 
   const handleRadiusChange = (e) => {
@@ -17,8 +16,7 @@ function App() {
   };
 
   const handleSearch = async () => {
-    const station = stationName.trim();
-    setIsLoading(true);
+    const station = address.trim();
     if (!station || radius === 0) return;
   
     try {
@@ -32,8 +30,6 @@ function App() {
       });
     } catch (error) {
       console.error("Error:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -43,16 +39,9 @@ function App() {
     }
   };
 
-  const isFormValid = stationName.trim() && radius > 0;
+  const isFormValid = address.trim() && radius > 0;
 
-  useEffect(() => {
-    const handleToolOutput = (e) => {
-      if (e.detail?.globals?.toolOutput) setIsLoading(false);
-    };
-    window.addEventListener("openai:set_globals", handleToolOutput);
-    return () => window.removeEventListener("openai:set_globals", handleToolOutput);
-  }, []);
-
+  
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <div className="w-full max-w-2xl">
@@ -68,10 +57,10 @@ function App() {
               </label>
               <input
                 type="text"
-                value={stationName}
+                value={address}
                 onChange={handleStationChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Enter station name..."
+                placeholder="Enter Address..."
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-200 text-gray-700 placeholder-gray-400"
               />
             </div>
@@ -94,7 +83,7 @@ function App() {
             
             <button
               onClick={handleSearch}
-              disabled={!isFormValid || isLoading}
+              disabled={!isFormValid}
               className={`w-full px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 shadow-lg ${
                 isFormValid
                   ? "bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-xl active:scale-95 transform cursor-pointer"
