@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { X, Mail } from "lucide-react";
 import SpaceInfo from "./SpaceInfo.jsx";
 
-export default function Popper({ place, map, onClose }) {
+export default function Popper({ place, map, onClose, onContactClick }) {
   const [containerHeight, setContainerHeight] = useState(400);
   const popperRef = useRef(null);
 
@@ -76,6 +76,22 @@ export default function Popper({ place, map, onClose }) {
                 <SpaceInfo key={space.id} space={space} />
               ))}
             </div>
+          </div>
+        )}
+
+        {onContactClick && (
+          <div className="pt-2">
+            <button
+              type="button"
+              className="cursor-pointer inline-flex items-center rounded-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 text-sm font-medium hover:opacity-90 active:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                onContactClick(place);
+              }}
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              <span>お問い合わせ</span>
+            </button>
           </div>
         )}
       </div>

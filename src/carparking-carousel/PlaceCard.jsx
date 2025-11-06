@@ -1,7 +1,8 @@
 import React from "react";
 import SpaceInfo from "./SpaceInfo";
+import { Mail } from "lucide-react";
 
-export default function PlaceCard({ place, isSelected = false, onClick }) {
+export default function PlaceCard({ place, isSelected = false, onClick, onContactClick }) {
   if (!place) return null;
   
   return (
@@ -26,7 +27,7 @@ export default function PlaceCard({ place, isSelected = false, onClick }) {
           </div>
         )}
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto pt-3 space-y-2">
           <button
             type="button"
             className="cursor-pointer inline-flex items-center rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
@@ -37,6 +38,19 @@ export default function PlaceCard({ place, isSelected = false, onClick }) {
           >
             詳細を見る
           </button>
+          {onContactClick && (
+            <button
+              type="button"
+              className="cursor-pointer inline-flex items-center rounded-full bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 text-sm font-medium hover:opacity-90 active:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed w-full justify-center"
+              onClick={(e) => {
+                e.stopPropagation();
+                onContactClick(place);
+              }}
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              <span>お問い合わせ</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

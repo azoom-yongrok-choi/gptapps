@@ -5,6 +5,7 @@ import { ArrowLeft, ArrowRight, Filter } from "lucide-react";
 import PlaceCard from "./PlaceCard";
 import FilterModal from "./FilterModal";
 import CarparkingMap from "./CarparkingMap";
+import ContactForm from "./ContactForm";
 import dummy from "../dummy.json";
 import { ROOF_ENUM } from "./utils";
 
@@ -15,6 +16,7 @@ function App() {
   const [places, setPlaces] = useState([]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState(null);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
   const [filters, setFilters] = useState({
     price: { min: -Infinity, max: Infinity },
@@ -169,6 +171,10 @@ function App() {
             places={places} 
             selectedPlace={selectedPlace}
             setSelectedPlace={setSelectedPlace}
+            onContactClick={(place) => {
+              setSelectedPlace(place);
+              setIsContactModalOpen(true);
+            }}
           />
         </div>
       )}
@@ -184,7 +190,7 @@ function App() {
         </button>
       </div>
 
-      <div className="overflow-hidden" ref={emblaRef}>
+      <div className="relative overflow-hidden" ref={emblaRef}>
         <div className="flex gap-4 max-sm:mx-5 items-stretch p-4">
           {
             places.length > 0 ?  places.map((place) => (
@@ -193,6 +199,10 @@ function App() {
                 place={place}
                 isSelected={selectedPlace?.id === place.id}
                 onClick={() => setSelectedPlace(place)}
+                onContactClick={(place) => {
+                  setSelectedPlace(place);
+                  setIsContactModalOpen(true);
+                }}
               />
             )) : (
               <div className="flex items-center justify-center h-full">
@@ -201,70 +211,73 @@ function App() {
             )
           }
         </div>
-      </div>
-      {/* Edge gradients */}
-      <div
-        aria-hidden
-        className={
-          "pointer-events-none absolute inset-y-0 left-0 w-3 z-[5] transition-opacity duration-200 " +
-          (canPrev ? "opacity-100" : "opacity-0")
-        }
-      >
+        
+        {/* Edge gradients */}
         <div
-          className="h-full w-full border-l border-black/15 bg-gradient-to-r from-black/10 to-transparent"
-          style={{
-            WebkitMaskImage:
-              "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
-            maskImage:
-              "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
-          }}
-        />
-      </div>
-      <div
-        aria-hidden
-        className={
-          "pointer-events-none absolute inset-y-0 right-0 w-3 z-[5] transition-opacity duration-200 " +
-          (canNext ? "opacity-100" : "opacity-0")
-        }
-      >
+          aria-hidden
+          className={
+            "pointer-events-none absolute inset-y-0 left-0 w-3 z-[5] transition-opacity duration-200 " +
+            (canPrev ? "opacity-100" : "opacity-0")
+          }
+        >
+          <div
+            className="h-full w-full border-l border-black/15 bg-gradient-to-r from-black/10 to-transparent"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
+            }}
+          />
+        </div>
         <div
-          className="h-full w-full border-r border-black/15 bg-gradient-to-l from-black/10 to-transparent"
-          style={{
-            WebkitMaskImage:
-              "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
-            maskImage:
-              "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
-          }}
-        />
+          aria-hidden
+          className={
+            "pointer-events-none absolute inset-y-0 right-0 w-3 z-[5] transition-opacity duration-200 " +
+            (canNext ? "opacity-100" : "opacity-0")
+          }
+        >
+          <div
+            className="h-full w-full border-r border-black/15 bg-gradient-to-l from-black/10 to-transparent"
+            style={{
+              WebkitMaskImage:
+                "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
+              maskImage:
+                "linear-gradient(to bottom, transparent 0%, white 30%, white 70%, transparent 100%)",
+            }}
+          />
+        </div>
+        
+        {/* Navigation buttons */}
+        {canPrev && (
+          <button
+            aria-label="Previous"
+            className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white cursor-pointer"
+            onClick={() => emblaApi && emblaApi.scrollPrev()}
+            type="button"
+          >
+            <ArrowLeft
+              strokeWidth={1.5}
+              className="h-4.5 w-4.5"
+              aria-hidden="true"
+            />
+          </button>
+        )}
+        {canNext && (
+          <button
+            aria-label="Next"
+            className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white cursor-pointer"
+            onClick={() => emblaApi && emblaApi.scrollNext()}
+            type="button"
+          >
+            <ArrowRight
+              strokeWidth={1.5}
+              className="h-4.5 w-4.5"
+              aria-hidden="true"
+            />
+          </button>
+        )}
       </div>
-      {canPrev && (
-        <button
-          aria-label="Previous"
-          className="absolute left-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white cursor-pointer"
-          onClick={() => emblaApi && emblaApi.scrollPrev()}
-          type="button"
-        >
-          <ArrowLeft
-            strokeWidth={1.5}
-            className="h-4.5 w-4.5"
-            aria-hidden="true"
-          />
-        </button>
-      )}
-      {canNext && (
-        <button
-          aria-label="Next"
-          className="absolute right-2 top-1/2 -translate-y-1/2 z-10 inline-flex items-center justify-center h-8 w-8 rounded-full bg-white text-black shadow-lg ring ring-black/5 hover:bg-white cursor-pointer"
-          onClick={() => emblaApi && emblaApi.scrollNext()}
-          type="button"
-        >
-          <ArrowRight
-            strokeWidth={1.5}
-            className="h-4.5 w-4.5"
-            aria-hidden="true"
-          />
-        </button>
-      )}
 
       <FilterModal
         isOpen={isFilterOpen}
@@ -273,6 +286,15 @@ function App() {
         filters={filters}
         setFilters={setFilters}
       />
+
+      {/* Contact Form Modal */}
+      {selectedPlace && (
+        <ContactForm 
+          placeId={selectedPlace.id}
+          isOpen={isContactModalOpen}
+          onClose={() => setIsContactModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
