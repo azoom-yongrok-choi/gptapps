@@ -91,6 +91,28 @@ function findAssetName(prefix: string): string {
   }
 }
 
+function delay(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+async function ensureWidgetsReady(retries = 3, intervalMs = 400) {
+  for (let i = 0; i <= retries; i++) {
+    if (widgets.size > 0) return;
+    console.warn(`⏳ widgets not ready yet (attempt ${i + 1}/${retries + 1})`);
+    try {
+      for (const mapping of WIDGET_TOOL_MAPPINGS) {
+        findAssetName(mapping.assetPrefix);
+      }
+      return;
+    } catch (e) {
+      console.error("❌ Failed to find asset name", e);
+    }
+    await delay(intervalMs);
+  }
+  if (widgets.size === 0) {
+    console.error("❌ Widgets are not initialized (assets not discovered).");
+  }
+}
+
 // ============================================================================
 // Widget Factory Functions
 // ============================================================================
@@ -187,7 +209,6 @@ console.log("🔍 Discovering assets...");
 const widgets = new Map<string, { widget: Widget; meta: WidgetMeta }>();
 
 for (const mapping of WIDGET_TOOL_MAPPINGS) {
-  // 런타임에 실제 asset 파일 이름 자동 감지
   const assetName = findAssetName(mapping.assetPrefix);
   const widget = createWidget(mapping.widgetConfig, assetName);
   const meta = createWidgetMeta(widget);
@@ -401,6 +422,9 @@ const postPath = "/mcp/messages";
 
 async function handleSseRequest(res: ServerResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
+
+  await ensureWidgetsReady();
+
   const server = createCarparkingServer();
   const transport = new SSEServerTransport(postPath, res);
   const sessionId = transport.sessionId;
